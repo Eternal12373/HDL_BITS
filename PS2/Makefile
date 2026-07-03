@@ -2,6 +2,7 @@ SIM = tb_ps2
 SRC = ps2.v tb_ps2.v
 VCD = $(SIM).vcd
 VVP = $(SIM).vvp
+GTKW = sim.gtkw
 GTKWAVE = /mnt/c/iverilog/gtkwave/bin/gtkwave.exe
 
 .PHONY: all wave clean
@@ -15,7 +16,11 @@ $(VCD): $(VVP)
 	vvp $(VVP)
 
 wave: $(VCD)
-	"$(GTKWAVE)" "$$(wslpath -w $(VCD))"
+	@if [ -f "$(GTKW)" ]; then \
+		"$(GTKWAVE)" "$$(wslpath -w $(VCD))" "$$(wslpath -w $(GTKW))"; \
+	else \
+		"$(GTKWAVE)" "$$(wslpath -w $(VCD))"; \
+	fi
 
 clean:
 	rm -f $(VVP) $(VCD)
