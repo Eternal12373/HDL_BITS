@@ -4,14 +4,17 @@ module top_module (
     input bump_left,
     input bump_right,
     input ground,
+    input dig,
     output walk_left,
     output walk_right,
-    output aaah
+    output aaah,
+    output digging
 );
     localparam 
         LEFT = 0,
         RIGHT = 1,
-        GROUND = 2;
+        FALLING = 2,
+        ST_DIG = 3;
 
     reg [7:0] state_reg;
     reg [7:0] state_next;
@@ -20,10 +23,12 @@ module top_module (
     reg walk_right_reg,walk_right_next;
     reg aaah_reg,aaah_next;
     reg walk_preserve_reg,walk_preserve_next;
+    reg digging_reg,digging_next;
 
     assign walk_left = walk_left_reg;
     assign walk_right = walk_right_reg;
     assign aaah = aaah_reg;
+    assign digging = digging_reg;
     
 
     always @(*) begin
@@ -32,16 +37,25 @@ module top_module (
         walk_right_next = walk_right_reg;
         walk_preserve_next = walk_preserve_reg;
         aaah_next = aaah_reg;
+        digging_next = 0;
+
         case (state_reg)
             LEFT: begin
                 if(!ground) begin
-                    state_next = GROUND;
+                    state_next = FALLING;
                     aaah_next = 1;
                     walk_left_next = 0;
                     walk_right_next = 0;
                     walk_preserve_next = walk_left_reg;
                 end
-                else if(bump_left && ground) begin
+                else if(dig) begin
+                    state_next = ST_DIG;
+                    walk_left_next = 0;
+                    walk_right_next = 0;
+                    digging_next = 1;
+                    walk_preserve_next = walk_left_reg;
+                end
+                else if(bump_left) begin
                     state_next = RIGHT;
                     walk_left_next = 0;
                     walk_right_next = 1;
@@ -54,11 +68,18 @@ module top_module (
             end
             RIGHT: begin
                 if (!ground) begin
-                    state_next = GROUND;
+                    state_next = FALLING;
                     aaah_next = 1;
                     walk_left_next = 0;
                     walk_right_next = 0;
                     walk_preserve_next = walk_left_reg;
+                end
+                else if(dig) begin
+                    state_next = ST_DIG;
+                    walk_left_next = 0;
+                    walk_right_next = 0;
+                    digging_next = 1;
+
                 end
                 else if(bump_right) begin
                     state_next = LEFT;
@@ -71,7 +92,7 @@ module top_module (
                     walk_left_next = 0;
                 end
             end
-            GROUND: begin
+            FALLING: begin
                 if(ground) begin
                     state_next = walk_preserve_reg?LEFT:RIGHT;
                     
@@ -80,10 +101,19 @@ module top_module (
                     aaah_next = 0;
                 end
                 else begin
-                    state_next = GROUND;
+                    state_next = FALLING;
                     walk_left_next = 0;
                     walk_right_next = 0;
                     aaah_next = 1;
+                end
+            end
+            ST_DIG: begin
+                if(!ground) begin
+                    state_next = FALLING;
+                    aaah_next = 1;
+                end 
+                else begin
+                    digging_next = 1;
                 end
             end
             default: state_next = LEFT;
@@ -97,6 +127,7 @@ module top_module (
             walk_right_reg <= 0;
             aaah_reg <= 0;
             walk_preserve_reg <= 0;
+            digging_reg <= 0;
         end
         else begin
             state_reg <= state_next;
@@ -104,6 +135,7 @@ module top_module (
             walk_right_reg <= walk_right_next;
             aaah_reg <= aaah_next;
             walk_preserve_reg <= walk_preserve_next;
+            digging_reg <= digging_next;
         end
     end
 
