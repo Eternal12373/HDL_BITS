@@ -14,10 +14,13 @@ module top_module (
         LEFT = 0,
         RIGHT = 1,
         FALLING = 2,
-        ST_DIG = 3;
+        ST_DIG = 3,
+        ST_DIE = 4;
 
     reg [7:0] state_reg;
     reg [7:0] state_next;
+    reg [7:0] cnt_reg;
+    reg [7:0] cnt_next;
 
     reg walk_left_reg,walk_left_next;
     reg walk_right_reg,walk_right_next;
@@ -38,6 +41,7 @@ module top_module (
         walk_preserve_next = walk_preserve_reg;
         aaah_next = aaah_reg;
         digging_next = 0;
+        cnt_next = cnt_reg;
 
         case (state_reg)
             LEFT: begin
@@ -79,6 +83,7 @@ module top_module (
                     walk_left_next = 0;
                     walk_right_next = 0;
                     digging_next = 1;
+                    walk_preserve_next = walk_left_reg;
 
                 end
                 else if(bump_right) begin
@@ -94,10 +99,17 @@ module top_module (
             end
             FALLING: begin
                 if(ground) begin
-                    state_next = walk_preserve_reg?LEFT:RIGHT;
-                    
-                    walk_left_next = walk_preserve_reg;
-                    walk_right_next = ~walk_preserve_reg;
+                    cnt_next = 0;
+                    if(cnt_reg >= 20) begin
+                        state_next = ST_DIE;
+                        walk_left_next = 0;
+                        walk_right_next = 0;
+                    end
+                    else begin
+                        state_next = walk_preserve_reg?LEFT:RIGHT;
+                        walk_left_next = walk_preserve_reg;
+                        walk_right_next = ~walk_preserve_reg;
+                    end
                     aaah_next = 0;
                 end
                 else begin
@@ -105,6 +117,7 @@ module top_module (
                     walk_left_next = 0;
                     walk_right_next = 0;
                     aaah_next = 1;
+                    cnt_next = cnt_next+1'b1;
                 end
             end
             ST_DIG: begin
@@ -115,6 +128,15 @@ module top_module (
                 else begin
                     digging_next = 1;
                 end
+            end
+            ST_DIE: begin
+                state_next = ST_DIE;
+
+                walk_left_next = 0;
+                walk_right_next = 0;
+                aaah_next = 0;
+                digging_next = 0;
+
             end
             default: state_next = LEFT;
         endcase
@@ -128,6 +150,7 @@ module top_module (
             aaah_reg <= 0;
             walk_preserve_reg <= 0;
             digging_reg <= 0;
+            cnt_reg <= 0;
         end
         else begin
             state_reg <= state_next;
@@ -136,6 +159,7 @@ module top_module (
             aaah_reg <= aaah_next;
             walk_preserve_reg <= walk_preserve_next;
             digging_reg <= digging_next;
+            cnt_reg <= cnt_next;
         end
     end
 
